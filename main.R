@@ -12,28 +12,26 @@ source("transform_training_data.R")
 source("utils.R")
 source("var_class.R")
 source("explore.R")
+source("missing_imputation.R")
 time_span = 1
 training <- read.csv("data\\training.csv")
 test_1 <- read.csv("data\\test_1.csv")
 test_2 <- read.csv("data\\test_2.csv")
 
 summary(training)
-
+#clean
 training_recoded <- clean_training_data(training)
-training_recoded_m_drug_tested <- training_recoded %>%
+#explore
+explore(training_recoded)
+
+#filter
+training_recoded_filtered <- training_recoded %>%
   filter(gender == "M") %>% 
   filter(drugtests_meth_positive != "not tested") %>%
   droplevels()
 
-summary(training_recoded_m_drug_tested)
-explore(training_recoded)
-
-N <- nrow(training_recoded_m)
-
-#transform dataset
-training_s <- transform_training_data(training_recoded_m_drug_tested)
-
-training_s <- training_s %>% 
+#remove unwanted variables
+training_recoded_filtered <- training_recoded_filtered %>% 
   select(!(residence_puma)) %>% 
   select(!(supervision_risk_score_first)) %>% 
   select(!(supervision_level_first)) %>% 
@@ -42,7 +40,15 @@ training_s <- training_s %>%
   select(!(recidivism_arrest_year3)) %>% 
   select(!(recidivism_within_3years)) %>%
   select(!(avg_days_per_drugtest))  
-  
+
+#missing imputation
+training_recoded_filtered <- missing_imputation(training_recoded_filtered, var="percent_days_employed")
+
+explore(training_recoded_filtered)
+N <- nrow(training_recoded_filtered)
+
+#transform dataset
+training_s <- transform_training_data(training_recoded_filtered)
 covar_list <- names(training_s)[1:45]
 
 #cox model
